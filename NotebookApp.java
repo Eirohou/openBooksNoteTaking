@@ -335,6 +335,14 @@ public class NotebookApp {
                     else System.out.println("Library not found.");
                 }
                 break;
+            case "cdlib":
+                if (args.isEmpty()) System.out.println("Usage: cdlib <name>");
+                else {
+                    String cleanName = args.toLowerCase();
+                    if (config.libraries.containsKey(cleanName)) currentLibrary = cleanName;
+                    else System.out.println("Library not found.");
+                }
+                break;
             case "rmlib":
                 // Deletes the library along with every book file (and its
                 // .bak backup) it contains, then clears current location
@@ -409,6 +417,17 @@ public class NotebookApp {
                     } else System.out.println("Book not found.");
                 }
                 break;
+            case "cdbook":
+                if (args.isEmpty()) System.out.println("Usage: cdbook <name>");
+                else {
+                    String bookPath = getActiveBookRegistry().get(args.toLowerCase());
+                    if (bookPath != null) {
+                        Book b = loadBook(bookPath);
+                        if (b != null) currentBook = b;
+                        else System.out.println("File missing or corrupted.");
+                    } else System.out.println("Book not found.");
+                }
+                break;
             case "rmbook":
                 if (args.isEmpty()) System.out.println("Usage: rmbook <name>");
                 else {
@@ -462,6 +481,14 @@ public class NotebookApp {
                     else System.out.println("Page not found.");
                 }
                 break;
+            case "cdpage":
+                if (currentBook == null) System.out.println("Open a book first.");
+                else {
+                    Page p = currentBook.getPage(args);
+                    if (p != null) currentPage = p;
+                    else System.out.println("Page not found.");
+                }
+                break;
             case "rmpage":
                 if (currentBook != null) { currentBook.removePage(args); saveCurrentBook(); }
                 if (currentPage != null && currentPage.getName().equalsIgnoreCase(args)) currentPage = null;
@@ -469,6 +496,36 @@ public class NotebookApp {
 
             // --- Note Commands ---
             case "addnote":
+                if (currentPage == null) {
+                    System.out.println("Open a page first.");
+                } else if (args.isEmpty()) {
+                    System.out.println("Usage: addnote <name> [content]");
+                } else {
+                    // First token is the note's name; anything after is the
+                    // (optional) inline content.
+                    String[] noteParts = args.split(" ", 2);
+                    String noteName = noteParts[0];
+                    String noteContent = noteParts.length > 1 ? noteParts[1] : "";
+
+                    if (noteContent.isEmpty()) {
+                        // Smart Add: No content provided? Open the editor!
+                        String newContent = openInExternalEditor("");
+                        if (!newContent.isEmpty()) {
+                            currentPage.addNote(new Note(noteName, newContent));
+                            saveCurrentBook();
+                            System.out.println("Note added.");
+                        } else {
+                            System.out.println("Note discarded (empty).");
+                        }
+                    } else {
+                        // Fast Add: Content provided? Just add it directly.
+                        currentPage.addNote(new Note(noteName, noteContent));
+                        saveCurrentBook();
+                        System.out.println("Quick note added.");
+                    }
+                }
+                break;
+            case "mknote":
                 if (currentPage == null) {
                     System.out.println("Open a page first.");
                 } else if (args.isEmpty()) {
@@ -574,17 +631,19 @@ public class NotebookApp {
         System.out.println("mkcdpage <name>    : Make and enter a page");
 
         System.out.println("\n--- Library Commands ---");
-        System.out.println("mklib / lslibs / openlib / rmlib");
+        System.out.println("mklib / lslibs / openlib = cdpage / rmlib");
 
         System.out.println("\n--- Book Commands ---");
-        System.out.println("mkbook / lsbooks / openbook / rmbook");
+        System.out.println("mkbook / lsbooks / openbook = cdpage / rmbook");
 
         System.out.println("\n--- Page Commands ---");
-        System.out.println("mkpage / lspages / openpage / rmpage");
+        System.out.println("mkpage / lspages / openpage = cdpage / rmpage");
 
         System.out.println("\n--- Note Commands ---");
         System.out.println("addnote <name>          : Opens external editor to write a new note called <name>");
         System.out.println("addnote <name> <text>   : Quick-adds a note called <name> with <text> directly");
+        System.out.println("mknote <name>          : Opens external editor to write a new note called <name>");
+        System.out.println("mknote <name> <text>   : Quick-adds a note called <name> with <text> directly");
         System.out.println("editnote <index>   : Opens an existing note in the external editor");
         System.out.println("lsnotes            : List all notes with their index");
         System.out.println("rmnote <index>     : Remove a note by index");
