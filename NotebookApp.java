@@ -280,6 +280,7 @@ public class NotebookApp {
                 System.out.println("Goodbye!");
                 System.exit(0);
                 break;
+            case "cd .":
             case "up":
             case "back":
                 // Step back up one level: page -> book -> library -> top.
@@ -327,16 +328,10 @@ public class NotebookApp {
                 if (config.libraries.isEmpty()) System.out.println("No libraries exist.");
                 else config.libraries.keySet().forEach(lib -> System.out.println("- " + lib));
                 break;
+
+            case "cdlib":
             case "openlib":
                 if (args.isEmpty()) System.out.println("Usage: openlib <name>");
-                else {
-                    String cleanName = args.toLowerCase();
-                    if (config.libraries.containsKey(cleanName)) currentLibrary = cleanName;
-                    else System.out.println("Library not found.");
-                }
-                break;
-            case "cdlib":
-                if (args.isEmpty()) System.out.println("Usage: cdlib <name>");
                 else {
                     String cleanName = args.toLowerCase();
                     if (config.libraries.containsKey(cleanName)) currentLibrary = cleanName;
@@ -406,19 +401,9 @@ public class NotebookApp {
                 if (activeRegistryForLs.isEmpty()) System.out.println("No books found here.");
                 else activeRegistryForLs.forEach((name, path) -> System.out.println("- " + name));
                 break;
+            case "cdbook":
             case "openbook":
                 if (args.isEmpty()) System.out.println("Usage: openbook <name>");
-                else {
-                    String bookPath = getActiveBookRegistry().get(args.toLowerCase());
-                    if (bookPath != null) {
-                        Book b = loadBook(bookPath);
-                        if (b != null) currentBook = b;
-                        else System.out.println("File missing or corrupted.");
-                    } else System.out.println("Book not found.");
-                }
-                break;
-            case "cdbook":
-                if (args.isEmpty()) System.out.println("Usage: cdbook <name>");
                 else {
                     String bookPath = getActiveBookRegistry().get(args.toLowerCase());
                     if (bookPath != null) {
@@ -473,6 +458,7 @@ public class NotebookApp {
                 else if (currentBook.getPages().isEmpty()) System.out.println("No pages in this book.");
                 else currentBook.getPages().forEach(p -> System.out.println("- " + p.getName()));
                 break;
+            case "cdpage":
             case "openpage":
                 if (currentBook == null) System.out.println("Open a book first.");
                 else {
@@ -481,20 +467,14 @@ public class NotebookApp {
                     else System.out.println("Page not found.");
                 }
                 break;
-            case "cdpage":
-                if (currentBook == null) System.out.println("Open a book first.");
-                else {
-                    Page p = currentBook.getPage(args);
-                    if (p != null) currentPage = p;
-                    else System.out.println("Page not found.");
-                }
-                break;
+
             case "rmpage":
                 if (currentBook != null) { currentBook.removePage(args); saveCurrentBook(); }
                 if (currentPage != null && currentPage.getName().equalsIgnoreCase(args)) currentPage = null;
                 break;
 
             // --- Note Commands ---
+            case "mknote":
             case "addnote":
                 if (currentPage == null) {
                     System.out.println("Open a page first.");
@@ -525,37 +505,6 @@ public class NotebookApp {
                     }
                 }
                 break;
-            case "mknote":
-                if (currentPage == null) {
-                    System.out.println("Open a page first.");
-                } else if (args.isEmpty()) {
-                    System.out.println("Usage: addnote <name> [content]");
-                } else {
-                    // First token is the note's name; anything after is the
-                    // (optional) inline content.
-                    String[] noteParts = args.split(" ", 2);
-                    String noteName = noteParts[0];
-                    String noteContent = noteParts.length > 1 ? noteParts[1] : "";
-
-                    if (noteContent.isEmpty()) {
-                        // Smart Add: No content provided? Open the editor!
-                        String newContent = openInExternalEditor("");
-                        if (!newContent.isEmpty()) {
-                            currentPage.addNote(new Note(noteName, newContent));
-                            saveCurrentBook();
-                            System.out.println("Note added.");
-                        } else {
-                            System.out.println("Note discarded (empty).");
-                        }
-                    } else {
-                        // Fast Add: Content provided? Just add it directly.
-                        currentPage.addNote(new Note(noteName, noteContent));
-                        saveCurrentBook();
-                        System.out.println("Quick note added.");
-                    }
-                }
-                break;
-
             case "editnote":
                 if (currentPage == null) {
                     System.out.println("Open a page first.");
